@@ -3,8 +3,8 @@
 
 Summary: DNSSEC key and zone management software
 Name: opendnssec
-Version: 2.1.8
-Release: 4%{?dist}
+Version: 2.1.10
+Release: 1%{?dist}
 License: BSD
 Url: http://www.opendnssec.org/
 Source0: http://www.opendnssec.org/files/source/%{?prever:testing/}%{name}-%{version}%{?prever}.tar.gz
@@ -16,6 +16,9 @@ Source5: tmpfiles-opendnssec.conf
 Source6: opendnssec.cron
 Source7: opendnssec-2.1.sqlite_convert.sql
 Source8: opendnssec-2.1.sqlite_rpmversion.sql
+
+Patch1:    0001-Pass-right-remaining-buffer-size-in-hsm_hex_unparse-.patch
+Patch1001: 1001-opendnssec-c99.patch
 
 Requires: opencryptoki, softhsm >= 2.5.0 , systemd-units
 Requires: libxml2, libxslt sqlite
@@ -33,10 +36,8 @@ Requires(pre): shadow-utils
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
-%if 0%{?prever:1}
-# For building development snapshots
+
 Buildrequires: autoconf, automake, libtool, java
-%endif
 
 %description
 OpenDNSSEC was created as an open-source turn-key solution for DNSSEC.
@@ -45,6 +46,8 @@ name server. It requires a PKCS#11 crypto module library, such as softhsm
 
 %prep
 %setup -q -n %{name}-%{version}%{?prever}
+%autopatch -p1
+
 # bump default policy ZSK keysize to 2048
 sed -i "s/1024/2048/" conf/kasp.xml.in
 
@@ -178,6 +181,10 @@ ods-enforcer update all >/dev/null 2>/dev/null ||:
 %systemd_postun_with_restart ods-signerd.service
 
 %changelog
+* Thu Apr 27 2023 Rafael Guterres Jeffman <rjeffman@redhat.com> - 2.1.10-1
+- Upstream release 2.1.10.
+  Resolves: rhbz#1981324
+
 * Mon Aug 09 2021 Mohan Boddu <mboddu@redhat.com> - 2.1.8-4
 - Rebuilt for IMA sigs, glibc 2.34, aarch64 flags
   Related: rhbz#1991688
