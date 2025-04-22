@@ -4,7 +4,7 @@
 Summary: DNSSEC key and zone management software
 Name: opendnssec
 Version: 2.1.7
-Release: 1%{?prever}%{?dist}
+Release: 2%{?prever}%{?dist}
 License: BSD
 Url: http://www.opendnssec.org/
 Source0: http://www.opendnssec.org/files/source/%{?prever:testing/}%{name}-%{version}%{?prever}.tar.gz
@@ -77,7 +77,6 @@ install -m 0644 %{SOURCE3} %{buildroot}/%{_sysconfdir}/sysconfig/ods
 install -m 0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/opendnssec/
 mkdir -p %{buildroot}%{_tmpfilesdir}/
 install -m 0644 %{SOURCE5} %{buildroot}%{_tmpfilesdir}/opendnssec.conf
-mkdir -p %{buildroot}%{_localstatedir}/run/opendnssec
 mkdir -p %{buildroot}%{_datadir}/opendnssec/
 cp -a enforcer/utils %{buildroot}%{_datadir}/opendnssec/migration
 cp -a enforcer/src/db/schema.* %{buildroot}%{_datadir}/opendnssec/migration/1.4-2.0_db_convert/
@@ -103,7 +102,6 @@ sed -i "s:sqlite_convert.sql:%{_datadir}/opendnssec/migration/1.4-2.0_db_convert
 %attr(0770,root,ods) %dir %{_localstatedir}/opendnssec/enforcer
 %attr(0660,root,ods) %config(noreplace) %{_sysconfdir}/opendnssec/*.xml
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/sysconfig/ods
-%attr(0770,root,ods) %dir %{_localstatedir}/run/opendnssec
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/cron.d/opendnssec
 %doc NEWS README.md
 %license LICENSE
@@ -177,6 +175,10 @@ ods-enforcer update all >/dev/null 2>/dev/null ||:
 %systemd_postun_with_restart ods-signerd.service
 
 %changelog
+* Mon Mar 10 2025 Rafael Jeffman <rjeffman@redhat.com> - 2.1.7-2
+- Don't creat /var/run/opendnssec directory
+- Resolves: RHEL-12163
+
 * Fri Dec 04 2020 Alexander Bokovoy <abokovoy@redhat.com> - 2.1.7-1
 - Upstream release 2.1.7
 - Resolves: rhbz#1904484
