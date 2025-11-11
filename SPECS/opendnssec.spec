@@ -1,10 +1,15 @@
+# Due to https://issues.redhat.com/browse/RHEL-70841, opendnssec cannot
+# be built on i686. The java_arches macro is not available at this time,
+# so we define it explicitly.
+%global java_arches aarch64 ppc64le s390x x86_64
+
 #global prever rcX
 %global _hardened_build 1
 
 Summary: DNSSEC key and zone management software
 Name: opendnssec
 Version: 2.1.10
-Release: 1%{?dist}
+Release: 4%{?dist}
 License: BSD
 Url: http://www.opendnssec.org/
 Source0: http://www.opendnssec.org/files/source/%{?prever:testing/}%{name}-%{version}%{?prever}.tar.gz
@@ -16,12 +21,16 @@ Source5: tmpfiles-opendnssec.conf
 Source6: opendnssec.cron
 Source7: opendnssec-2.1.sqlite_convert.sql
 Source8: opendnssec-2.1.sqlite_rpmversion.sql
+Source9: %{name}-sysusers.conf
 
 Patch1:    0001-Pass-right-remaining-buffer-size-in-hsm_hex_unparse-.patch
 Patch1001: 1001-opendnssec-c99.patch
 
 Requires: opencryptoki, softhsm >= 2.5.0 , systemd-units
 Requires: libxml2, libxslt sqlite
+
+ExclusiveArch: %{java_arches}
+
 BuildRequires: make
 BuildRequires:  gcc
 BuildRequires: ldns-devel >= 1.6.12, sqlite-devel >= 3.0.0, openssl-devel
@@ -81,7 +90,7 @@ install -m 0644 %{SOURCE3} %{buildroot}/%{_sysconfdir}/sysconfig/ods
 install -m 0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/opendnssec/
 mkdir -p %{buildroot}%{_tmpfilesdir}/
 install -m 0644 %{SOURCE5} %{buildroot}%{_tmpfilesdir}/opendnssec.conf
-mkdir -p %{buildroot}%{_localstatedir}/run/opendnssec
+install -D %{SOURCE9} %{buildroot}%{_sysusersdir}/%{name}.conf
 mkdir -p %{buildroot}%{_datadir}/opendnssec/
 cp -a enforcer/utils %{buildroot}%{_datadir}/opendnssec/migration
 cp -a enforcer/src/db/schema.* %{buildroot}%{_datadir}/opendnssec/migration/1.4-2.0_db_convert/
@@ -107,7 +116,6 @@ sed -i "s:sqlite_convert.sql:%{_datadir}/opendnssec/migration/1.4-2.0_db_convert
 %attr(0770,root,ods) %dir %{_localstatedir}/opendnssec/enforcer
 %attr(0660,root,ods) %config(noreplace) %{_sysconfdir}/opendnssec/*.xml
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/sysconfig/ods
-%attr(0770,root,ods) %dir %{_localstatedir}/run/opendnssec
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/cron.d/opendnssec
 %doc NEWS README.md
 %license LICENSE
@@ -116,13 +124,11 @@ sed -i "s:sqlite_convert.sql:%{_datadir}/opendnssec/migration/1.4-2.0_db_convert
 %{_bindir}/*
 %attr(0755,root,root) %dir %{_datadir}/opendnssec
 %{_datadir}/opendnssec/*
+%{_sysusersdir}/%{name}.conf
 
 %pre
-getent group ods >/dev/null || groupadd -r ods
-getent passwd ods >/dev/null || \
-useradd -r -g ods -d /etc/opendnssec -s /sbin/nologin \
--c "opendnssec daemon account" ods
-exit 0
+
+%sysusers_create_package %{name} %{SOURCE9}
 
 %post
 # Initialise a slot on the softhsm on first install
@@ -181,7 +187,19 @@ ods-enforcer update all >/dev/null 2>/dev/null ||:
 %systemd_postun_with_restart ods-signerd.service
 
 %changelog
-* Thu Apr 27 2023 Rafael Guterres Jeffman <rjeffman@redhat.com> - 2.1.10-1
+* Wed Jul 23 2025 Rafael Jeffman <rjeffman@redhat.com> - 2.1.10-3
+- Don't package files in obsoleted /var/run
+  Resolves: RHEL-4866
+
+* Fri Jan 24 2025 Rafael Jeffman <rjeffman@redhat.com> - 2.1.10-3
+- Exclude i686 arch, as there's no OpenJDK 17 for this arch
+  Resolves: RHEL-75905
+
+* Wed Jan 22 2025 Rafael Jeffman <rjeffman@redhat.com> - 2.1.10-2
+- Use systemd-sysusers to create users
+  Resolves: RHEL-75905
+
+* Thu Apr 27 2023 Rafael Jeffman <rjeffman@redhat.com> - 2.1.10-1
 - Upstream release 2.1.10.
   Resolves: rhbz#1981324
 
